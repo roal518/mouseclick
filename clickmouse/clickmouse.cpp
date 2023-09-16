@@ -7,8 +7,9 @@
 #include<gl/freeglut_ext.h>
 #define MAX_RECTANGLES 8
 typedef struct rectangle {
-    float x1, y1, x2, y2; // 위치 
+    float x1 = 0, y1 = 0, x2 = 0, y2 = 0; // 위치 
     float r=0, g=0, b=0; // 색상
+    int index = 0;
 } rect;//사각형 데이터 저장
 
 GLfloat red, green, blue; // RGB 색상 변수
@@ -18,48 +19,82 @@ bool left_botton = true;
 bool right_botton = true;
 
 rect rectangles[MAX_RECTANGLES];
+int selectedRectangle = -1;
 bool atStart = true;
 GLvoid drawfirstScene(GLvoid);
 void Reshape(int w, int h);
 void Clickmouse(int button, int state, int x, int y);
 
+void drawRectangle(float x1, float y1, float x2, float y2) {
+    glBegin(GL_QUADS);
+    glVertex2f(x1, y1);
+    glVertex2f(x2, y1);
+    glVertex2f(x2, y2);
+    glVertex2f(x1, y2);
+    glEnd();
+}
 void Clickmouse(int button, int state, int x, int y) {
-
-    double nomalX = (x - winWidth / 2) / 400;
-    double nomalY = (winHeight / 2 - y) / 300;
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         left_botton = true;
-        for (int i = 0; i < MAX_RECTANGLES; i++) {
-            if (i < 4) {
-                if ((rectangles[i].x1 <= nomalX && nomalX <= rectangles[i + 4].x1) ||
-                    (rectangles[i].y1 <= nomalY && nomalY <= rectangles[i + 4].y1) ||
-                    (rectangles[i + 4].x2 <= nomalX && nomalX <= rectangles[i].x2) ||
-                    (rectangles[i + 4].y2 <= nomalY && nomalY <= rectangles[i].y2
-                    )) {
-                    printf("click\n");
-                    rectangles[i].r = static_cast<float>(rand()) / RAND_MAX;
-                    rectangles[i].g = static_cast<float>(rand()) / RAND_MAX;
-                    rectangles[i].b = static_cast<float>(rand()) / RAND_MAX;
-                }     
+        double nomalX = (2.0f * x) / glutGet(GLUT_WINDOW_WIDTH) - 1.0f;
+        double nomalY = 1.0f - (2.0f * y) / glutGet(GLUT_WINDOW_HEIGHT);
+        for (int i = 0; i < MAX_RECTANGLES/2; i++) {
+            if ((rectangles[i].x1 <= nomalX && nomalX <= rectangles[i + 4].x1 ||
+                rectangles[i + 4].x2 <= nomalX && nomalX <= rectangles[i].x2) &&
+                (rectangles[i].y1 <= nomalY && nomalY <= rectangles[i + 4].y1 ||
+                rectangles[i + 4].y2 <= nomalY && nomalY <= rectangles[i].y2)) {
+                rectangles[i].r = static_cast<float>(rand()) / RAND_MAX;
+                rectangles[i].g = static_cast<float>(rand()) / RAND_MAX;
+                rectangles[i].b = static_cast<float>(rand()) / RAND_MAX;
             }
-            else if (i > 4) {
-
+        }
+        for (int i = MAX_RECTANGLES / 2; i < MAX_RECTANGLES; i++) {
+            if ((rectangles[i].x1 <= nomalX && nomalX <= rectangles[i].x2)&&
+                rectangles[i].y1 < nomalY && nomalY <= rectangles[i].y2) {
+                rectangles[i].r = static_cast<float>(rand()) / RAND_MAX;
+                rectangles[i].g = static_cast<float>(rand()) / RAND_MAX;
+                rectangles[i].b = static_cast<float>(rand()) / RAND_MAX;
             }
         }
         glutPostRedisplay();
     }
     else if (state == GLUT_UP) {
         left_botton = false;
+        selectedRectangle = -1;
     }
     if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
         right_botton = true;
-        double nomalX = (x - winWidth / 2) / 400;
-        double nomalY = (winHeight / 2 - y) / 300;
+        double nomalX = (2.0f * x) / glutGet(GLUT_WINDOW_WIDTH) - 1.0f;
+        double nomalY = 1.0f - (2.0f * y) / glutGet(GLUT_WINDOW_HEIGHT);
+        for (int i = 0; i < MAX_RECTANGLES / 2; i++) {
+            if ((rectangles[i].x1 <= nomalX && nomalX <= rectangles[i + 4].x1 ||
+                rectangles[i + 4].x2 <= nomalX && nomalX <= rectangles[i].x2) &&
+                (rectangles[i].y1 <= nomalY && nomalY <= rectangles[i + 4].y1 ||
+                    rectangles[i + 4].y2 <= nomalY && nomalY <= rectangles[i].y2)) {
+                float newWidth = rectangles[i].x2 - rectangles[i].x1 + 0.1f;  // Increase width by 0.1
+                float newHeight = rectangles[i].y2 - rectangles[i].y1 + 0.1f; // Increase height by 0.1
 
-        for (int i = 0; i < MAX_RECTANGLES; i++) {
-            if ((rectangles[i].x1 < nomalX && nomalX < rectangles[i].x2) ||
-                (rectangles[i].y1 < nomalY && nomalY < rectangles[i].y2)) {
-                //사각형 내부의 요소를 탐지함
+                // Ensure that the new width and height do not exceed 1.0
+                if (newWidth > 1.0f) {
+                    newWidth = 1.0f;
+                }
+                if (newHeight > 1.0f) {
+                    newHeight = 1.0f;
+                }
+
+                // Calculate the new position to keep the rectangle centered
+                float deltaX = (newWidth - (rectangles[i].x2 - rectangles[i].x1)) / 2.0f;
+                float deltaY = (newHeight - (rectangles[i].y2 - rectangles[i].y1)) / 2.0f;
+
+                rectangles[i].x1 -= deltaX;
+                rectangles[i].y1 -= deltaY;
+                rectangles[i].x2 = rectangles[i].x1 + newWidth;
+                rectangles[i].y2 = rectangles[i].y1 + newHeight;
+            }
+        }
+        for (int i = MAX_RECTANGLES / 2; i < MAX_RECTANGLES; i++) {
+            if ((rectangles[i].x1 <= nomalX && nomalX <= rectangles[i].x2) &&
+                rectangles[i].y1 < nomalY && nomalY <= rectangles[i].y2) {
                 float newWidth = rectangles[i].x2 - rectangles[i].x1 - 0.1f;
                 float newHeight = rectangles[i].y2 - rectangles[i].y1 - 0.1f;
                 if (newWidth < 0.1f) {
@@ -90,43 +125,23 @@ void drawfirstScene(GLvoid) {
     // 그리기 코드 작성
     if (atStart) {
         for (int i = 0; i < MAX_RECTANGLES; i++) {
-            rectangles[i].r = static_cast<float>(rand()) / RAND_MAX;
-            rectangles[i].g = static_cast<float>(rand()) / RAND_MAX;
-            rectangles[i].b = static_cast<float>(rand()) / RAND_MAX;
-            if (i == 0||i==4) {
-                rectangles[i].x1 = 0.0f;
-                rectangles[i].y1 = 0.0f;
-                rectangles[i].x2 = 1.0f;
-                rectangles[i].y2 = 1.0f;
-            }
-            if (i == 1 || i == 5) {
-                rectangles[i].x1 = -1.0f;
-                rectangles[i].y1 = 0.0f;
-                rectangles[i].x2 = 0.0f;
-                rectangles[i].y2 = 1.0f;
-            }
-            if (i == 2 || i == 6) {
-                rectangles[i].x1 = -1.0f;
-                rectangles[i].y1 = -1.0f;
-                rectangles[i].x2 = 0.0f;
-                rectangles[i].y2 = 0.0f;
-            }
-            if (i == 3 || i == 7) {
-                rectangles[i].x1 = 0.0f;
-                rectangles[i].y1 = -1.0f;
-                rectangles[i].x2 = 1.0f;
-                rectangles[i].y2 = 0.0f;
-            }
-            glRectf(rectangles[i].x1, rectangles[i].y1, rectangles[i].x2, rectangles[i].y2);
+            red = static_cast<float>(rand()) / RAND_MAX;
+            green = static_cast<float>(rand()) / RAND_MAX;
+            blue = static_cast<float>(rand()) / RAND_MAX;
+            rectangles[i].r = red;
+            rectangles[i].g = green;
+            rectangles[i].b = blue;
             glColor3f(rectangles[i].r, rectangles[i].g, rectangles[i].b);
+            drawRectangle(rectangles[i].x1, rectangles[i].y1, rectangles[i].x2, rectangles[i].y2);
         }
         glutSwapBuffers();
         atStart = false;
     }
     else if (!atStart) {
         for (int i = 0; i < MAX_RECTANGLES; i++) {
-            glRectf(rectangles[i].x1, rectangles[i].y1, rectangles[i].x2, rectangles[i].y2);
             glColor3f(rectangles[i].r, rectangles[i].g, rectangles[i].b);
+            drawRectangle(rectangles[i].x1, rectangles[i].y1, rectangles[i].x2, rectangles[i].y2);
+            rectangles[i].index = 0;
         }
         glutSwapBuffers();
     }
@@ -144,7 +159,16 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(0, 100);
     glutInitWindowSize((int)winWidth, (int)winHeight);
     glutCreateWindow("EX 2");
-
+    {
+        rectangles[0] = { 0.0f,0.0f,1.0f,1.0f };
+        rectangles[1] = { -1.0f,0.0f,0.0f,1.0f };
+        rectangles[2] = { -1.0f,-1.0f,0.0f,0.0f };
+        rectangles[3] = { 0.0f,-1.0f,1.0f,0.0f };
+        rectangles[4] = { 0.0f,0.0f,1.0f,1.0f };
+        rectangles[5] = { -1.0f,0.0f,0.0f,1.0f };
+        rectangles[6] = { -1.0f,-1.0f,0.0f,0.0f };
+        rectangles[7] = { 0.0f,-1.0f,1.0f,0.0f };
+    }
     glutDisplayFunc(drawfirstScene);
     glutReshapeFunc(Reshape);
 
