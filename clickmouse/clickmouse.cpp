@@ -71,25 +71,20 @@ void Clickmouse(int button, int state, int x, int y) {
                 rectangles[i + 4].x2 <= nomalX && nomalX <= rectangles[i].x2) &&
                 (rectangles[i].y1 <= nomalY && nomalY <= rectangles[i + 4].y1 ||
                     rectangles[i + 4].y2 <= nomalY && nomalY <= rectangles[i].y2)) {
-                float newWidth = rectangles[i].x2 - rectangles[i].x1 + 0.1f;  // Increase width by 0.1
-                float newHeight = rectangles[i].y2 - rectangles[i].y1 + 0.1f; // Increase height by 0.1
+                float newWidth = rectangles[i+4].x2 - rectangles[i+4].x1 + 0.1f;
+                float newHeight = rectangles[i+4].y2 - rectangles[i+4].y1 + 0.1f;
 
                 // Ensure that the new width and height do not exceed 1.0
-                if (newWidth > 1.0f) {
+                if (newWidth >= 1.0f) {
                     newWidth = 1.0f;
                 }
-                if (newHeight > 1.0f) {
+                if (newHeight >= 1.0f) {
                     newHeight = 1.0f;
                 }
-
-                // Calculate the new position to keep the rectangle centered
-                float deltaX = (newWidth - (rectangles[i].x2 - rectangles[i].x1)) / 2.0f;
-                float deltaY = (newHeight - (rectangles[i].y2 - rectangles[i].y1)) / 2.0f;
-
-                rectangles[i].x1 -= deltaX;
-                rectangles[i].y1 -= deltaY;
-                rectangles[i].x2 = rectangles[i].x1 + newWidth;
-                rectangles[i].y2 = rectangles[i].y1 + newHeight;
+                rectangles[i+4].x1 += (rectangles[i+4].x2 - rectangles[i+4].x1 - newWidth) / 2;
+                rectangles[i+4].y1 += (rectangles[i+4].y2 - rectangles[i+4].y1 - newHeight) / 2;
+                rectangles[i+4].x2 = rectangles[i+4].x1 + newWidth;
+                rectangles[i+4].y2 = rectangles[i+4].y1 + newHeight;
             }
         }
         for (int i = MAX_RECTANGLES / 2; i < MAX_RECTANGLES; i++) {
